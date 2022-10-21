@@ -1,16 +1,17 @@
 ---
 layout: post
-title:  "Core Java（1）Java核心技术学习清单"
+title:  "Core Java（0）Java核心技术学习清单"
 date:   2022-10-20 15:44:43 +0800
 categories: Core Java
+permalink: /:categories/0
 ---
 《Core Java》（《Java 核心技术》）共两卷，按目录进行学习，共24章。接下来一段时间我将按章学习全书，并做博客记录学习内容。
 
 《Java 核心技术·卷1》目录内容：
 
 <ol>
-    <li> <a href="2022-10-20-Core-Java（2）Java概述.markdown">Java 程序设计概述</a> </li>
-    <li> <a href="2022-10-20-Core-Java（3）Java环境.markdown">Java 程序设计环境</a> </li>
+    <li> <a href="1">Java 程序设计概述</a> </li>
+    <li> <a href="2">Java 程序设计环境</a> </li>
     <li> <a href="">Java 的基本程序设计结构</a> </li>
     <li> <a href="">对象与类</a> </li>
     <li> <a href="">继承</a> </li>

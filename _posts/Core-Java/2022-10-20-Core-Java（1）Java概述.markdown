@@ -1,8 +1,9 @@
 ---
 layout: post
-title:  "Core Java（2）Java概述"
+title:  "Core Java（1）Java概述"
 date:   2022-10-20 16:31:11 +0800
 categories: Core Java
+permalink: /:categories/1
 ---
 1996 年 Java 第一次发布以来就备受关注，Java 为什么这么特别？
 
