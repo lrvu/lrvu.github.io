@@ -4,6 +4,9 @@ title:  "Core Java（3）Java的基本结构"
 categories: Core Java
 permalink: /:categories/3
 ---
+
+## 目录
+- [目录](#目录)
 - [一个简单的 Java 应用程序](#一个简单的-java-应用程序)
 - [注释](#注释)
 - [数据类型](#数据类型)
