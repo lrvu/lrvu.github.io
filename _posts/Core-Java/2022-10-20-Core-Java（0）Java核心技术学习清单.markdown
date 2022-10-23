@@ -12,7 +12,7 @@ permalink: /:categories/0
 <ol>
     <li> <a href="1">Java 程序设计概述</a> </li>
     <li> <a href="2">Java 程序设计环境</a> </li>
-    <li> <a href="">Java 的基本程序设计结构</a> </li>
+    <li> <a href="3">Java 的基本程序设计结构</a> </li>
     <li> <a href="">对象与类</a> </li>
     <li> <a href="">继承</a> </li>
     <li> <a href="">接口，lambda 表达式与内部类</a> </li>
