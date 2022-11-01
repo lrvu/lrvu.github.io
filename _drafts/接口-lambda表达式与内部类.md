@@ -1,10 +1,34 @@
 ---
 layout: post
-title: Core Java（5）接口/lambda表达式与内部类
+title: Core Java（6）接口/lambda表达式与内部类
 categories: Core Java
-permalink: "/:categories/5"
+permalink: "/:categories/6"
 ---
-
+- [接口](#接口)
+  - [接口的属性](#接口的属性)
+  - [接口与抽象类](#接口与抽象类)
+  - [静态和私有方法](#静态和私有方法)
+  - [默认方法](#默认方法)
+  - [解决默认方法冲突](#解决默认方法冲突)
+  - [接口与回调](#接口与回调)
+  - [Comparator 接口](#comparator-接口)
+  - [对象克隆 Cloneable 接口](#对象克隆-cloneable-接口)
+- [lambda 表达式](#lambda-表达式)
+  - [函数式接口](#函数式接口)
+  - [方法引用](#方法引用)
+  - [构造器引用](#构造器引用)
+  - [变量作用域](#变量作用域)
+  - [处理 lambda 表达式](#处理-lambda-表达式)
+  - [再谈 Comparator](#再谈-comparator)
+- [内部类](#内部类)
+  - [使用内部类访问对象状态](#使用内部类访问对象状态)
+  - [内部类的特殊语法规则](#内部类的特殊语法规则)
+  - [局部内部类](#局部内部类)
+  - [匿名内部类](#匿名内部类)
+  - [静态内部类](#静态内部类)
+- [服务加载器](#服务加载器)
+- [代理](#代理)
+  - [创建代理对象](#创建代理对象)
 ## 接口
 
 接口(interface)用来描述类应该做什么, 而不指定它们具体应该如何做, 一个类可以实现(implement)一个或多个接口. 在 Java 中, 接口不是类, 而是对希望符合这个接口的类的一组需求.
@@ -393,6 +417,286 @@ Arrays.sort(people, comparing(Person::getMiddleName, nullsFirst(naturalOrder()))
 
 ## 内部类
 
+内部类 (inner class) 是定义在另一个类中的类. 内部类可以对同一个包中的其他类隐藏, 内部类方法可以访问定义这个类的作用域中的数据, 包括原本私有的数据.
+
+### 使用内部类访问对象状态
+
+看下面这个简单的例子
+```java
+class TalkingClock{
+    private int interval;
+    private boolean beep;
+
+    public TalkingClock(int interval, boolean beep){ 
+        this.interval = interval;
+        this.beep = beep;
+     }
+    public void start(){ 
+        var listener = new TimePrinter();
+        var timer = new Timer(interval, listener);
+        timer.start();
+     }
+
+    // an inner class
+    public class TimePrinter implements ActionListener{
+        public void actionPerformed(ActionEvent event){
+            System.out.println("At the tone, the time is "
+                + Instant.ofEpochMilli(event.getWhen()));
+            if(beep) Toolkit.getDefaultToolkit().beep();
+        }    
+    }
+}
+```
+这里的 TimerPrinter 类位于 TalkingClock 内部. 这并不意味着每个 TalkingClock 都有一个 TimePrinter 实例字段. TimePrinter 类没有实例字段或者名为 beep 的变量, 内部类可以访问创建它的外围类对象的数据. 为此, 内部类的对象总有一个隐式引用, 指向创建它的外部类对象.
+
+### 内部类的特殊语法规则
+
+使用外围类引用的正规语法表达式 `OuterClass.this` 表示外围类引用. 例如 `TalkingClock.this.beep` .
+
+反过来, 可以采用 `outerObject.new InnerClass(construction parameters)` 编写内部类对象的构造器, 例如, `ActionListener listener = this.new TimePrinter();`
+
+也可以通过显式地命名将外围类引用设置为其他的对象. 例如: 
+```java
+var jabberer = new TalkingClock(1000, true);
+TalkingColck.TimPrinter listener = jabberer.new TimePrinter();
+```
+
+在外围类的作用域外, 可以通过 `OuterClass.InnerClass` 引用内部类. 内部类中所有的静态字段都必须是 final 常量, 不能有静态方法.
+
+### 局部内部类
+
+可以在一个方法中局部地定义这个类.
+```java
+public void start(){
+
+    class TimePrinter implements ActionListener{
+        public void actionPerformed(ActionEvent event){
+            System.out.println("At the tone, the time is "
+                + Instant.ofEpochMilli(event.getWhen()));
+            if(beep) Toolkit.getDefaultToolkit().beep();
+        }    
+    }
+
+    var listener = new TimePrinter();
+    var timer = new Timer(interval, listener);
+    timer.start();
+}
+```
+
+声明局部类时不能有访问说明符(即 public 或 private). 局部类的作用域被限定在声明这个局部类的块中. 局部类有一个很大的优势: 即对外部世界完全隐藏, 除 start 方法之外, 没有任何方法知道 TimePrinter 类的存在.
+
+与其他内部类相比较, 局部类不仅能够访问外部类的字段, 还可以访问局部变量. 不过这些局部变量必须是*事实最终变量*(effectively final).
+
+### 匿名内部类
+
+使用局部类时不为类指定名字, 这样的一个类被称为*匿名内部类*(anonymous inner class).
+```java
+public void start(){
+
+   var listener = ActionListener(){
+        public void actionPerformed(ActionEvent event){
+            System.out.println("At the tone, the time is "
+                + Instant.ofEpochMilli(event.getWhen()));
+            if(beep) Toolkit.getDefaultToolkit().beep();
+        }    
+    }
+
+    var timer = new Timer(interval, listener);
+    timer.start();
+}
+```
+
+这个语法的含义是: 创建一个类的新对象, 这个类实现了 ActionListener 接口, 需要实现的方法 actionPerformed 在括号 {} 内定义. 一般的, 语法如下:
+```
+new SuperType(construction parameters){
+    inner class methods and data;
+}
+```
+其中, SuperType 可以是接口, 如 ActionListener, 如果这样, 内部类就要实现这个接口. SuperType 也可以是一个类, 如果是这样, 内部类就要扩展这个类.
+
+由于构造器的名字必须与类名相同, 而匿名内部类没有类名, 所以, 匿名内部类不能有构造器, 实际上, 构造参数要传递给超类的构造器.
+
+在 lambda 表达式出现之前, Java 程序员习惯使用匿名内部类实现事件监听器和其他回调, 如今最好还是使用 lambda 表达式.
+
+### 静态内部类
+
+有时候, 使用内部类只是为了把一个类隐藏在另一个类的内部, 并不需要内部类有外围类对象的一个引用. 为此, 可以将内部类声明为 static, 这样就不会生成那个引用.
+```java
+class ArrayAlg{
+    public static class Pair{
+        ...
+    }
+    ...
+    public static Pair minmax(souble[] values){
+        ...
+        return new Pair(...);
+    }
+}
+```
+Pair 是 ArrayAlg 的一个公共内部类, 可以通过 ArrayAlg.Pair 访问.
+
 ## 服务加载器
 
+有时会开发采用一个服务架构的应用, 有些平台支持这种方法, 如 [OSGi](http://osgi.org), 可以用于开发环境, 应用服务期和其他复杂的应用. JDK 提供了一个加载服务的简单机制, 这种机制由 Java 平台模块系统提供支持.
+
+通常提供一个服务时, 程序希望服务设计者能有一些自由, 能够确定如何实现服务的特性. 另外还希望有多个实现以供选择. 利用 ServiceLoader 类可以很容易地加载符合一个公共接口的服务. 
+
+定义一个接口 (或者一个超类), 其中包含服务的各个实例应当提供的方法. 例如, 假设你的服务要提供加密.
+```java
+package serviceLoader;
+
+public interface Cipher{
+    byte[] encrypt(byte[] source, byte[] key);
+    byte[] decrypt(byte[] source, byte[] key);
+    int strength();
+}
+```
+服务提供者可以提供一个或多个实现这个服务的类, 例如:
+```java
+package serviceLoader.impl;
+
+public class CaesarCipher implemints Cipher{
+    public byte[] encrypt(byte[] source, byte[] key){
+        var result = new byte[source.length];
+        for(int i = 0; i < source.length; i++)
+            result[i] = (byte)(source[i] + key[0]);
+        return result;
+    }
+
+    public byte[] decrypt(byte[] source, byte[] key){
+        return encrypt(source, new byte[]{ ((byte) -key[0]});
+    }
+
+    public int strength(){return 1;}
+}
+```
+现在把这些类的类名增加到 META-INF/services 目录下的一个 UTF-8 编码文本文件中, 文件名必须与完全限定类名一致. 在本例中, 文件 META-INF/services/serviceLoader.Cipher 必须包含这样一行: `serviceLoader.impl.CaesarCipher`.
+
+完成这个准备工作之后, 程序可以如下初始化一个服务加载器:
+```java
+public static ServiceLoader<Cipher> cipherLoader = ServiceLoader.load(Cipher.class);
+```
+这个初始化工作只在程序中完成一次. 关于更多关于服务加载器可以看[ServiceLoader 官方文档](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/ServiceLoader.html).
+
 ## 代理
+
+利用代理可以在运行时创建实现一组给定接口的新类. 只有在编译时期无法确定需要实现哪个接口时才有必要使用代理.
+
+假定你想构造一个类的对象, 这个类实现了一个或多个接口, 但是在编译时你可能并不知道这些接口到底是什么. 要想构造一个具体的类, 只需要使用 newInstance 方法或者使用反射找出构造器. 但是, 不能实例化接口. 需要在运行的程序中定义一个新类.
+
+代理类可以在运行时创建全新的类. 这样的代理类能够实现你指定的接口. 具体地, 代理类包含以下方法:
+- 指定接口所需要的全部方法
+- Object 类中的全部方法
+
+不过, 不能在运行时为这些方法定义新代码. 实际上, 必须提供一个*调用处理器*(invocation handler). 调用处理器是实现了 InvocationHandler 接口的类的对象. 这个接口只有一个方法: `Object invoke(Object proxy, Method method, Object[] args)`.
+
+无论何时调用代理对象的方法, 调用处理器的 invoke 方法都会被调用, 并向其传递 Method 对象和原调用的参数. 之后调用处理器必须确定如何处理这个调用.
+
+### 创建代理对象
+
+要想创建一个代理对象, 需要使用 Proxy 类的 newProxyInstance 方法. 这个方法有三个参数:
+- 一个类加载器(class loader). 作为 Java 安全模型的一部分, 可以对平台和应用类, 从因特网中下载的类等使用不同类加载器. 在这个例子中, 我们指定 `ClassLoader.getSystemClassLoader()` 系统类加载器加载平台和应用类.
+- 一个 Class 对象数组, 每个元素对应需要实现的各个接口.
+- 一个调用处理器.
+
+使用代理可能出于以下原因:
+- 将方法调用路由到远程服务器
+- 在运行的程序中将用户界面事件与动作关联起来
+- 为了测试, 跟踪方法调用
+
+在下列程序中, 我们使用代理对象跟踪一个二分查找. 这里首先在数组中填充整数 1 ~ 1000 的代理, 然后调用 Arrays 类的 binarySearch 方法在数组中查找一个随机整数, 最后, 打印匹配的元素.
+
+```java
+package proxy;
+
+import java.lang.reflect.*;
+import java.util.*;
+
+/**
+ * 代理类实例测试, 这个测试使用代理对象跟踪一个二分查找.
+ */
+public class ProxyTest{
+    public static void main(String[] args) {
+        var elements = new Object[1000];
+
+        // 填充代理元素
+        for(int i = 0; i < elements.length; i++){
+            Integer value = i + 1;
+            // 构造 value 的包装器
+            var handler = new TraceHandler(value);
+            /*
+             * newProxyInstance 参数解释:
+             * ClassLoader.getSystemClassLoader(): 系统类加载器
+             * new Class[]{Comparable.class}: 要代理的接口, 当执行接口定义方法时, 会由 handler 代理执行
+             * handler: 调用处理器, 当检测到 Class 数组中的接口方法时, 由 handler 中的 invoke 代理执行
+             */
+            Object proxy = Proxy.newProxyInstance(
+                ClassLoader.getSystemClassLoader(),
+                new Class[]{Comparable.class},
+                handler
+            );
+            // 把代理器包装的值封装到数组中
+            elements[i] = proxy;
+        }
+
+        // 生成一个随机数
+        Integer key = new Random().nextInt(elements.length) + 1;
+
+        // 按照随机数查找数组中对应的元素
+        int result = Arrays.binarySearch(elements, key);
+
+        // 如果查到就输出匹配结果
+        if(result >= 0) System.out.println(elements[result]);
+    }
+}
+
+class TraceHandler implements InvocationHandler{
+
+    private Object target;
+
+    /**
+     * 调用处理器的构造器
+     * @param t 调用代理对象的值
+     */
+    public TraceHandler(Object t){
+        target = t;
+    }
+
+    /**
+     * 代理器处理方法, 这里代理的是 Comparable 接口中的 compareTo 方法,
+     * 在执行 compareTo 方法前, 打印调用对象/调用方法和方法参数,
+     * 最后为目标对象执行原本的方法
+     */
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        // 打印执行过程
+        System.out.print(target);
+        System.out.print("." + method.getName() + "(");
+        if(args != null){
+            for (int i = 0; i < args.length; i++) {
+                System.out.print(args[i]);
+                if(i < args.length - 1) System.out.print(", ");
+            }
+        }
+        System.out.println(")");
+        // 执行方法
+        return method.invoke(target, args);
+    }
+}
+```
+其中 Integer 类实现了 Comparable 接口, 代理对象属于在运行时定义的一个类, 不过它的 compareTo 方法调用了代理对象处理器的 invoke 方法. Object 方法默认会被代理, 最后 toString 方法也会被代理. 最后的输出结果为:
+
+```
+500.compareTo(332)
+250.compareTo(332)
+375.compareTo(332)
+312.compareTo(332)
+343.compareTo(332)
+327.compareTo(332)
+335.compareTo(332)
+331.compareTo(332)
+333.compareTo(332)
+332.compareTo(332)
+332.toString()
+332
+```
