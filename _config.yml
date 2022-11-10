@@ -8,8 +8,8 @@ description: >- # this means to ignore newlines until "baseurl:"
   wish you have a good day when you see this description:)
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
-twitter_username: yanlee
-twitter_userlink: yanlee87920340
+twitter_username: 
+twitter_userlink: 
 github_username:  lrvu
 
 # Build settings
